@@ -575,7 +575,12 @@
                     </div>
                     <button type="button" onclick="closeCategoryModal()" class="text-slate-400 hover:text-slate-700 font-black text-xl p-1">✕</button>
                 </div>
-                <div id="categoryListContainer" class="space-y-2.5 max-h-[320px] overflow-y-auto pr-1"></div>
+                <div class="flex bg-slate-100 rounded-full p-1 comic-border">
+    <button type="button" data-diff="easy" onclick="setDifficulty('easy')" class="diff-btn flex-1 py-1.5 rounded-full font-black text-[11px]">😊 EASY</button>
+    <button type="button" data-diff="medium" onclick="setDifficulty('medium')" class="diff-btn flex-1 py-1.5 rounded-full font-black text-[11px]">😎 MEDIUM</button>
+    <button type="button" data-diff="hard" onclick="setDifficulty('hard')" class="diff-btn flex-1 py-1.5 rounded-full font-black text-[11px]">🔥 HARD</button>
+</div>
+<div id="categoryListContainer" class="space-y-2.5 max-h-[280px] overflow-y-auto pr-1"></div>
                 <button type="button" onclick="closeCategoryModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-black py-2.5 rounded-full border-2 border-slate-900 uppercase tracking-wider text-xs">← Back To Menu</button>
             </div>
         </div>
@@ -722,6 +727,103 @@
         let isPaused = false;
 
         const QUIZ_BANK = {
+            const DIFFICULTY = {
+    easy:   { label: 'Easy',   level: 1, time: 20, mult: 1,    lives: 3 },
+    medium: { label: 'Medium', level: 2, time: 15, mult: 1.25, lives: 3 },
+    hard:   { label: 'Hard',   level: 3, time: 10, mult: 1.5,  lives: 2 }
+};
+let currentDifficulty = 'easy';
+
+// Existing questions count as Easy
+Object.values(QUIZ_BANK).forEach(c => c.questions.forEach(q => q.level = q.level || 1));
+
+// Format: [level, question, CORRECT answer, wrong, wrong, wrong]  (options are shuffled at play time)
+const MORE_QUESTIONS = {
+    javascript: [
+        [2, "What does [] + [] evaluate to?", "An empty string", "0", "[]", "undefined"],
+        [2, "Which array method returns a new array by transforming every element?", "map()", "forEach()", "reduce()", "splice()"],
+        [2, "What is a closure?", "A function bundled with its surrounding scope", "A way to close the browser", "A private class", "A self-running function"],
+        [2, "Which keyword pauses an async function until a Promise settles?", "await", "async", "yield", "defer"],
+        [2, "What is NaN === NaN?", "false", "true", "undefined", "It throws an error"],
+        [2, "What does filter() return?", "A new array of elements that pass the test", "The first match only", "A boolean", "The mutated original array"],
+        [3, "What does 0.1 + 0.2 === 0.3 evaluate to?", "false", "true", "undefined", "TypeError"],
+        [3, "What state is a let variable in before its declaration line runs?", "Temporal Dead Zone", "undefined", "null", "Garbage collected"],
+        [3, "After the call stack empties, which runs first?", "Microtask queue (Promises)", "setTimeout callbacks", "Render queue", "Event listeners"],
+        [3, "What does 'this' refer to inside an arrow function?", "The enclosing lexical scope's this", "The function itself", "Always the global object", "Always undefined"],
+        [3, "What does Object.freeze() do?", "Shallowly prevents changes to own properties", "Deep-locks nested objects", "Makes the variable const", "Makes properties private"],
+        [3, "What does typeof NaN return?", "'number'", "'NaN'", "'undefined'", "'object'"]
+    ],
+    python: [
+        [2, "What does list(range(2, 10, 3)) return?", "[2, 5, 8]", "[2, 5, 8, 10]", "[3, 6, 9]", "[2, 4, 6, 8]"],
+        [2, "Which keyword makes a function a generator?", "yield", "return", "emit", "generate"],
+        [2, "What does the 'is' operator compare?", "Object identity", "Value equality", "Type only", "Length"],
+        [2, "What does [x*2 for x in [1,2,3]] produce?", "[2, 4, 6]", "[1, 4, 9]", "(2, 4, 6)", "[1, 2, 3, 1, 2, 3]"],
+        [2, "Which block handles exceptions in Python?", "try/except", "try/catch", "catch/throw", "handle/error"],
+        [2, "What does 'self' represent in a method?", "The current instance", "The class", "The module", "The parent class"],
+        [3, "What does the GIL in CPython do?", "Lets only one thread run bytecode at a time", "Garbage-collects lists", "Locks files on disk", "Compiles code to C"],
+        [3, "What is bool([])?", "False", "True", "None", "Error"],
+        [3, "What does @staticmethod change?", "The method receives neither self nor cls", "The method becomes private", "The method is cached", "The method becomes async"],
+        [3, "With def f(a=[]), what happens to the default list?", "It is created once and shared across calls", "A new list is made each call", "Syntax error", "It becomes immutable"],
+        [3, "What does 'yield from' do?", "Delegates to another generator or iterable", "Returns from a function", "Imports a generator", "Raises StopIteration"],
+        [3, "Average time complexity of a dict key lookup?", "O(1)", "O(n)", "O(log n)", "O(n²)"]
+    ],
+    html_css: [
+        [2, "Which display value creates a flex container?", "flex", "flexbox", "block-flex", "inline-box"],
+        [2, "Which attribute gives an image alternative text?", "alt", "title", "caption", "label"],
+        [2, "What does box-sizing: border-box do?", "Includes padding and border in the element's width", "Removes borders", "Adds outer margin", "Turns it into a flex item"],
+        [2, "Which selector has the highest specificity?", "#id", ".class", "p (element)", "* (universal)"],
+        [2, "Which tag is the semantic choice for navigation links?", "<nav>", "<div>", "<menu>", "<links>"],
+        [2, "position: absolute is positioned relative to what?", "Nearest positioned ancestor", "Always the viewport", "Its previous sibling", "Always its parent"],
+        [3, "Which unit is relative to the root element's font size?", "rem", "em", "ch", "vh"],
+        [3, "In CSS Grid, what does 1fr mean?", "One fraction of the available space", "One frame", "One pixel ratio", "One font-relative unit"],
+        [3, "What does the defer attribute on a script do?", "Runs it after HTML parsing, in order", "Runs it before parsing", "Loads it unordered", "Disables the script"],
+        [3, "Which of these creates a new stacking context?", "position: fixed", "color", "margin", "line-height"],
+        [3, "What does :nth-child(2n+1) select?", "Odd children", "Even children", "The first two children", "Every third child"],
+        [3, "Which tag controls mobile layout scaling?", "meta viewport", "meta charset", "link rel=icon", "base href"]
+    ],
+    networking: [
+        [2, "Which protocol maps an IP address to a MAC address on a LAN?", "ARP", "DHCP", "ICMP", "DNS"],
+        [2, "Which protocol assigns IP addresses automatically?", "DHCP", "ARP", "SNMP", "FTP"],
+        [2, "How many bits is an IPv4 address?", "32", "64", "128", "16"],
+        [2, "At which OSI layer does a router operate?", "Network (Layer 3)", "Data Link (Layer 2)", "Transport (Layer 4)", "Physical (Layer 1)"],
+        [2, "Which protocol is connectionless?", "UDP", "TCP", "SSH", "FTP"],
+        [2, "What is SSH's default port?", "22", "23", "21", "25"],
+        [3, "How many usable host addresses are in a /24 subnet?", "254", "256", "255", "252"],
+        [3, "What is the TCP three-way handshake?", "SYN, SYN-ACK, ACK", "SYN, ACK, FIN", "RST, SYN, ACK", "FIN, ACK, SYN"],
+        [3, "Which of these is a link-state routing protocol?", "OSPF", "RIP", "BGP", "EGP"],
+        [3, "What does NAT primarily do?", "Translates private IPs to public IPs", "Encrypts traffic", "Assigns MAC addresses", "Resolves domain names"],
+        [3, "What is the TTL field in an IP packet for?", "Limiting the packet's lifetime by hop count", "Encrypting the payload", "Fragmenting packets", "Setting priority"],
+        [3, "Which tool traces the hops a packet takes?", "traceroute", "nslookup", "netstat", "arp"]
+    ],
+    security: [
+        [2, "Which attack injects malicious SQL through input fields?", "SQL injection", "XSS", "CSRF", "DDoS"],
+        [2, "What does a VPN primarily provide?", "An encrypted tunnel", "A faster CPU", "Antivirus", "Disk backup"],
+        [2, "Why are passwords hashed before storage?", "A one-way digest can't be reversed easily", "To compress them", "So they can be decrypted later", "To exchange keys"],
+        [2, "What is social engineering?", "Manipulating people into revealing information", "Writing malware", "Scanning ports", "Brute-forcing passwords"],
+        [2, "Which principle gives users only the access they need?", "Least privilege", "Defense in depth", "Non-repudiation", "Security by obscurity"],
+        [2, "What does a DDoS attack aim to do?", "Overwhelm a service with traffic", "Steal passwords", "Install a keylogger", "Encrypt files"],
+        [3, "Which attack injects malicious scripts into pages other users view?", "Cross-Site Scripting (XSS)", "CSRF", "Session fixation", "Clickjacking"],
+        [3, "Which of these is a symmetric encryption algorithm?", "AES", "RSA", "ECC", "DSA"],
+        [3, "What does salting passwords help prevent?", "Rainbow table attacks", "Phishing", "Packet sniffing", "DoS attacks"],
+        [3, "In public-key cryptography, what creates a digital signature?", "The sender's private key", "The sender's public key", "The receiver's private key", "A shared secret"],
+        [3, "What is a zero-day vulnerability?", "A flaw unknown to the vendor with no patch yet", "A bug fixed within a day", "A virus that deletes files in zero days", "A flaw only present on release day"],
+        [3, "Which attack tricks a logged-in user's browser into sending unwanted requests?", "CSRF", "SQL injection", "Buffer overflow", "Man-in-the-middle"]
+    ]
+};
+Object.keys(MORE_QUESTIONS).forEach(k =>
+    MORE_QUESTIONS[k].forEach(([level, question, ...options]) =>
+        QUIZ_BANK[k].questions.push({ question, options, answer: 0, level })
+    )
+);
+
+function setDifficulty(d) { playSoundEffect('click'); currentDifficulty = d; applyDifficultyUI(); }
+function applyDifficultyUI() {
+    document.querySelectorAll('.diff-btn').forEach(b => {
+        const on = b.dataset.diff === currentDifficulty;
+        b.className = 'diff-btn flex-1 py-1.5 rounded-full font-black text-[11px] transition-all ' +
+            (on ? 'bg-comic-pillBlue text-white comic-border shadow-comic-sm' : 'text-slate-500');
+    });
+}
             javascript: {
                 title: "JavaScript", icon: "⚡",
                 questions: [
@@ -777,6 +879,8 @@
                 ]
             }
         };
+
+        function openCategoryModal() { playSoundEffect('click'); applyDifficultyUI(); document.getElementById('modalCategories').classList.remove('hidden'); }
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -1224,7 +1328,10 @@ showMainMenu();
         }
 
         function buildRoundQuestions(categoryKey) {
-            const pool = QUIZ_BANK[categoryKey].questions;
+            const lvl = DIFFICULTY[currentDifficulty].level;
+const all = QUIZ_BANK[categoryKey].questions;
+let pool = all.filter(q => q.level === lvl);
+if (pool.length < QUESTIONS_PER_ROUND) pool = pool.concat(all.filter(q => q.level !== lvl));
             const shuffled = shuffleArray(pool);
             let selected = shuffled.slice(0, QUESTIONS_PER_ROUND);
             // pad by reusing (shuffled again) if the category has fewer than required
