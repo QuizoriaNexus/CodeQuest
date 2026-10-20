@@ -669,7 +669,6 @@
 <script>
     const REGISTRY_KEY = 'QUIZORIA_NEXUS_USERS_REGISTRY';
     const SESSION_KEY = 'QUIZORIA_NEXUS_CURRENT_SESSION';
-    const QUESTIONS_PER_ROUND = 5;
     const QUESTION_TIME_LIMIT = 15;
 
     function createFreshUserState(username) {
@@ -768,9 +767,9 @@
 
     // ---------- Difficulty system ----------
     const DIFFICULTY = {
-        easy:   { label: 'Easy',   level: 1, time: 20, mult: 1,    lives: 3 },
-        medium: { label: 'Medium', level: 2, time: 15, mult: 1.25, lives: 3 },
-        hard:   { label: 'Hard',   level: 3, time: 10, mult: 1.5,  lives: 2 }
+        easy:   { label: 'Easy',   level: 1, time: 20, mult: 1,    lives: 3, questions: 5 },
+        medium: { label: 'Medium', level: 2, time: 15, mult: 1.25, lives: 3, questions: 10 },
+        hard:   { label: 'Hard',   level: 3, time: 10, mult: 1.5,  lives: 2, questions: 20 }
     };
     let currentDifficulty = 'easy';
 
@@ -855,6 +854,127 @@
             QUIZ_BANK[k].questions.push({ question, options, answer: 0, level })
         )
     );
+
+    // ---------- Extra questions: Medium now has 10 per category, Hard has 20 per category ----------
+    // Format: [level, question, CORRECT answer, wrong, wrong, wrong]
+    const EXTRA_QUESTIONS = {
+        javascript: [
+            [2, "Which array method reduces an array to a single value?", "reduce()", "map()", "filter()", "find()"],
+            [2, "Which loop iterates over the values of an array?", "for...of", "for...in", "while...of", "foreach...in"],
+            [2, "What does localStorage store?", "Key-value strings that persist across sessions", "Data cleared when the tab closes", "Server-side cookies only", "Binary files"],
+            [2, "What does Promise.all() do?", "Resolves when all promises resolve, or rejects on the first rejection", "Resolves with the first settled promise", "Runs promises one after another", "Cancels all pending promises"],
+            [3, "What does [10, 9, 1].sort() return by default?", "[1, 10, 9]", "[1, 9, 10]", "[10, 9, 1]", "[9, 10, 1]"],
+            [3, "What does console.log(1 < 2 < 3, 3 > 2 > 1) print?", "true false", "true true", "false false", "false true"],
+            [3, "What does '5' - 2 evaluate to?", "3", "'52'", "NaN", "'3'"],
+            [3, "What does Promise.race() return?", "A promise that settles as soon as the first input promise settles", "An array of all results", "The slowest promise", "A promise that always rejects"],
+            [3, "How does JavaScript look up a property that an object doesn't have itself?", "Through the prototype chain", "Through event bubbling", "Through hoisting", "Through currying"],
+            [3, "What does Symbol('a') === Symbol('a') evaluate to?", "false", "true", "TypeError", "undefined"],
+            [3, "What is hoisting?", "Declarations are processed before code runs, so they are available earlier in scope", "Functions run before the page loads", "Variables automatically become global", "Code is minified before execution"],
+            [3, "What does [1, 2, 3].at(-1) return?", "3", "1", "undefined", "2"],
+            [3, "What does the new keyword do when calling a constructor function?", "Creates a new object and binds it as this", "Copies the function", "Makes the function async", "Freezes the new object"],
+            [3, "Which method returns a new function with a fixed this value?", "bind()", "call()", "apply()", "wrap()"],
+            [3, "What is event delegation?", "Handling child events with a single listener on a parent", "Delaying events with timers", "Cancelling default browser behavior", "Copying events to another page"],
+            [3, "What does 0 ?? 'default' return?", "0", "'default'", "null", "undefined"],
+            [3, "What does [...'abc'] produce?", "['a', 'b', 'c']", "['abc']", "[97, 98, 99]", "TypeError"],
+            [3, "In strict mode, what is this inside a plain function call?", "undefined", "window", "The function itself", "null"]
+        ],
+        python: [
+            [2, "What does 'hello'[::-1] return?", "'olleh'", "'hello'", "'h'", "An error"],
+            [2, "Which list method adds all items of an iterable to the end of a list?", "extend()", "append()", "insert()", "add()"],
+            [2, "What does dict.get(key, default) do when the key is missing?", "Returns the default value", "Raises a KeyError", "Always returns None", "Adds the key to the dict"],
+            [2, "What does type(3/2) show?", "<class 'float'>", "<class 'int'>", "<class 'decimal'>", "<class 'double'>"],
+            [3, "What does *args collect in a function definition?", "Extra positional arguments as a tuple", "Extra keyword arguments as a dict", "A list of all arguments by name", "Nothing, it is only a comment"],
+            [3, "What does **kwargs collect in a function definition?", "Extra keyword arguments as a dict", "Extra positional arguments as a tuple", "A set of unique arguments", "Default values"],
+            [3, "What does __init__ do?", "Initializes a new instance after it is created", "Creates the class itself", "Deletes the object", "Imports a module"],
+            [3, "What is a decorator?", "A function that wraps another function to extend its behavior", "A comment style", "A class attribute", "A type hint"],
+            [3, "What does 'with open(path) as f:' guarantee?", "The file is closed when the block exits", "The file is created if missing", "The file is locked forever", "The whole file is loaded into memory"],
+            [3, "What does list(zip([1, 2], [3, 4])) return?", "[(1, 3), (2, 4)]", "[1, 2, 3, 4]", "[(1, 2), (3, 4)]", "[[1, 2], [3, 4]]"],
+            [3, "What does [1, 2, 3] is [1, 2, 3] evaluate to?", "False", "True", "None", "It raises an error"],
+            [3, "How does copy.deepcopy differ from copy.copy?", "It recursively copies nested objects", "It copies only the top level", "It compresses the object", "It writes the copy to disk"],
+            [3, "What does functools.lru_cache do?", "Caches function results for repeated arguments", "Limits recursion depth", "Locks threads", "Logs every call"],
+            [3, "What does if __name__ == '__main__' check?", "Whether the file is run directly rather than imported", "Whether the file is named main", "Whether a main() function exists", "The Python version"],
+            [3, "What is the amortized time complexity of list.append()?", "O(1)", "O(n)", "O(log n)", "O(n log n)"],
+            [3, "What does sorted(['b', 'A', 'c']) return?", "['A', 'b', 'c']", "['a', 'b', 'c']", "['b', 'A', 'c']", "['c', 'b', 'A']"],
+            [3, "What does 'x is None' check?", "Identity with the None singleton", "Equality with zero", "That x is an empty string", "That x is a string"],
+            [3, "What does the nonlocal keyword do?", "Refers to a variable in the nearest enclosing function scope", "Makes a variable global", "Deletes a variable", "Makes a variable constant"]
+        ],
+        html_css: [
+            [2, "Which CSS property sets the stacking order of positioned elements?", "z-index", "order", "stack", "layer"],
+            [2, "Which HTML element holds the main unique content of a page?", "<main>", "<section>", "<aside>", "<footer>"],
+            [2, "What does display: none do?", "Removes the element from layout and rendering", "Hides it but keeps its space", "Makes it transparent", "Moves it off-screen"],
+            [2, "Which pseudo-class styles an element while the mouse is over it?", ":hover", ":focus", ":active", ":over"],
+            [3, "How does visibility: hidden differ from display: none?", "It hides the element but keeps its space", "It removes the element from layout", "It makes the element semi-transparent", "It disables scripts on the element"],
+            [3, "What is the CSS box model order from the inside out?", "Content, padding, border, margin", "Content, margin, border, padding", "Padding, content, border, margin", "Content, border, padding, margin"],
+            [3, "Which flexbox property aligns items along the main axis?", "justify-content", "align-items", "align-content", "flex-wrap"],
+            [3, "What does grid-template-columns: repeat(3, 1fr) create?", "Three equal-width columns", "Three rows of equal height", "One column three times as wide", "Three fixed 1px columns"],
+            [3, "Which position value acts relative until a scroll threshold, then sticks?", "sticky", "fixed", "relative", "static"],
+            [3, "What does <!DOCTYPE html> do?", "Tells the browser to render in standards mode", "Imports a stylesheet", "Declares a script", "Sets the page title"],
+            [3, "Which attribute makes a form field mandatory before submission?", "required", "mandatory", "validate", "needed"],
+            [3, "The em unit is based on what?", "The font size of the element or its parent", "The root element's font size", "The viewport width", "The container's width"],
+            [3, "What does the CSS calc() function do?", "Computes a value with arithmetic", "Counts child elements", "Creates a calendar", "Calls a JavaScript function"],
+            [3, "Which media query targets screens up to 600px wide?", "@media (max-width: 600px)", "@media (min-width: 600px)", "@media screen > 600", "@media (width: max 600px)"],
+            [3, "What does rel='noopener' on a link prevent?", "The new page from accessing window.opener", "Search engines from indexing the link", "The link from downloading files", "The browser from caching the page"],
+            [3, "What does object-fit: cover do on an image?", "Fills the box while keeping aspect ratio, cropping the overflow", "Stretches the image to fit, distorting it", "Shrinks the image so all of it shows", "Tiles the image"],
+            [3, "Which CSS truncates overflowing text with an ellipsis?", "text-overflow: ellipsis", "text-decoration: dots", "overflow-text: trim", "text-wrap: ellipsis"],
+            [3, "What is the default value of the position property?", "static", "relative", "absolute", "fixed"]
+        ],
+        networking: [
+            [2, "What is the default port for HTTP?", "80", "8080", "443", "21"],
+            [2, "Which protocol is used to send email between mail servers?", "SMTP", "IMAP", "POP3", "FTP"],
+            [2, "What does a MAC address identify?", "A network interface at the data link layer", "A domain name", "A router's public IP", "A TCP port"],
+            [2, "Which device works at Layer 2 and forwards frames by MAC address?", "Switch", "Router", "Hub", "Repeater"],
+            [3, "How many bits is an IPv6 address?", "128", "64", "32", "256"],
+            [3, "Which port does DNS use by default?", "53", "67", "110", "161"],
+            [3, "Which protocol securely replaces Telnet?", "SSH", "FTP", "SNMP", "HTTP"],
+            [3, "What is the subnet mask for a /16 network?", "255.255.0.0", "255.255.255.0", "255.0.0.0", "255.255.255.128"],
+            [3, "Which routing protocol exchanges routes between autonomous systems on the internet?", "BGP", "OSPF", "RIP", "EIGRP"],
+            [3, "What does ICMP primarily carry?", "Error and diagnostic messages such as ping", "Web pages", "Email", "File transfers"],
+            [3, "What does the TCP window size control?", "How much unacknowledged data can be in flight (flow control)", "Packet encryption", "DNS caching", "The MTU"],
+            [3, "What is the purpose of a default gateway?", "Forwarding traffic destined outside the local subnet", "Assigning IP addresses", "Resolving domain names", "Filtering spam email"],
+            [3, "What does a VLAN do?", "Logically segments a network at Layer 2", "Encrypts all traffic", "Speeds up Wi-Fi", "Routes between autonomous systems"],
+            [3, "Which DHCP message does a client broadcast first?", "DISCOVER", "OFFER", "REQUEST", "ACK"],
+            [3, "What is the standard Ethernet MTU?", "1500 bytes", "1024 bytes", "9000 bytes", "576 bytes"],
+            [3, "Which DNS record type maps a hostname to an IPv4 address?", "A", "MX", "CNAME", "PTR"],
+            [3, "Which DNS record type specifies a domain's mail servers?", "MX", "A", "TXT", "NS"],
+            [3, "What does the ping command use?", "ICMP echo request and reply", "TCP SYN packets", "UDP port 53", "ARP broadcasts"]
+        ],
+        security: [
+            [2, "What does MFA stand for?", "Multi-Factor Authentication", "Managed Firewall Access", "Master File Archive", "Multi-Function Antivirus"],
+            [2, "What is a brute-force attack?", "Trying many passwords until one works", "Intercepting network traffic", "Tricking users with fake emails", "Exploiting an unknown vulnerability"],
+            [2, "Which malware disguises itself as legitimate software?", "Trojan", "Worm", "Rootkit", "Adware"],
+            [2, "What is a password manager mainly used for?", "Storing unique strong passwords securely", "Cracking passwords", "Hiding your IP address", "Blocking ads"],
+            [3, "What does the CIA triad stand for in security?", "Confidentiality, Integrity, Availability", "Control, Identity, Access", "Cryptography, Integrity, Authentication", "Confidentiality, Identity, Authorization"],
+            [3, "What is a man-in-the-middle attack?", "Secretly intercepting and possibly altering communication", "Overloading a server with traffic", "Guessing passwords", "Injecting SQL into a form"],
+            [3, "What does a hash function like SHA-256 produce?", "A fixed-size digest of the input", "A reversible encrypted copy", "A public key", "A compressed file"],
+            [3, "What does TLS provide?", "Encryption and authentication for data in transit", "Full-disk encryption", "Malware scanning", "Password storage"],
+            [3, "What is a honeypot?", "A decoy system designed to attract attackers", "A password vault", "A type of firewall", "A backup server"],
+            [3, "Which tool is commonly used for network port scanning?", "Nmap", "Wireshark", "Git", "Docker"],
+            [3, "What is privilege escalation?", "Gaining higher access rights than intended", "Increasing network bandwidth", "Upgrading antivirus software", "Adding new user accounts"],
+            [3, "What does 'defense in depth' mean?", "Layering multiple security controls", "Relying on one strong firewall", "Hiding the system from the internet", "Encrypting only passwords"],
+            [3, "What is a rainbow table?", "A precomputed table of hashes used to crack passwords", "A color-coded network diagram", "A list of trusted certificates", "A firewall rule set"],
+            [3, "Which attack writes more data than a buffer can hold?", "Buffer overflow", "XSS", "CSRF", "Phishing"],
+            [3, "What does a WAF protect against?", "Web application attacks like SQL injection and XSS", "Wi-Fi jamming", "Disk failure", "Insider printing"],
+            [3, "How does a worm differ from a virus?", "A worm spreads on its own; a virus needs a host file", "A virus spreads on its own; a worm needs a host file", "Worms only affect phones", "There is no difference"],
+            [3, "What is the purpose of a CAPTCHA?", "Telling humans apart from bots", "Encrypting passwords", "Scanning for malware", "Tracking IP addresses"],
+            [3, "What is a SIEM used for?", "Collecting and analyzing security logs and alerts", "Encrypting email", "Building websites", "Backing up databases"]
+        ]
+    };
+    Object.keys(EXTRA_QUESTIONS).forEach(k =>
+        EXTRA_QUESTIONS[k].forEach(([level, question, ...options]) =>
+            QUIZ_BANK[k].questions.push({ question, options, answer: 0, level })
+        )
+    );
+
+    // ---------- Helpers for per-difficulty round size and best scores ----------
+    function roundSize() { return DIFFICULTY[currentDifficulty].questions; }
+    function bestKey(key, diff) { return `${key}:${diff}`; }
+    function getBest(key, diff) {
+        // Older saves stored one best per category (5-question rounds); treat that as the Easy best.
+        return userState.categoryBest[bestKey(key, diff)] || (diff === 'easy' ? userState.categoryBest[key] : undefined);
+    }
+    function escapeHtml(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
 
     function setDifficulty(d) { playSoundEffect('click'); currentDifficulty = d; applyDifficultyUI(); }
     function applyDifficultyUI() {
@@ -1242,8 +1362,8 @@
         container.innerHTML = '';
         Object.keys(QUIZ_BANK).forEach(key => {
             const cat = QUIZ_BANK[key];
-            const bestData = userState.categoryBest[key];
-            const bestLabel = bestData ? `Best: ${bestData.best}/${QUESTIONS_PER_ROUND}` : 'Not played yet';
+            const bestData = getBest(key, currentDifficulty);
+            const bestLabel = bestData ? `Best: ${bestData.best}/${roundSize()}` : `Not played yet · ${roundSize()} questions`;
             const item = document.createElement('div');
             item.className = "flex items-center justify-between p-2.5 bg-slate-50 border-2 border-slate-900 rounded-xl hover:bg-cyan-50 cursor-pointer transition-all shadow-comic-sm active:translate-y-0.5";
             item.onclick = () => selectCategoryAndStart(key);
@@ -1283,12 +1403,11 @@
         catContainer.innerHTML = '';
         Object.keys(QUIZ_BANK).forEach(key => {
             const cat = QUIZ_BANK[key];
-            const data = userState.categoryBest[key];
             const row = document.createElement('div');
             row.className = "flex justify-between items-center p-2 bg-slate-50 border-2 border-slate-900 rounded-lg text-xs";
             row.innerHTML = `
                 <span class="font-black text-slate-700">${cat.icon} ${cat.title}</span>
-                <span class="font-black text-comic-pillBlue">${data ? `${data.best}/${QUESTIONS_PER_ROUND}` : '—'}</span>
+                <span class="font-black text-comic-pillBlue text-[11px]">${['easy', 'medium', 'hard'].map(d => { const b = getBest(key, d); return `${DIFFICULTY[d].label[0]} ${b ? `${b.best}/${DIFFICULTY[d].questions}` : '—'}`; }).join(' · ')}</span>
             `;
             catContainer.appendChild(row);
         });
@@ -1340,14 +1459,15 @@
     function buildRoundQuestions(categoryKey) {
         const lvl = DIFFICULTY[currentDifficulty].level;
         const all = QUIZ_BANK[categoryKey].questions;
+        const size = roundSize();
         let pool = all.filter(q => q.level === lvl);
-        if (pool.length < QUESTIONS_PER_ROUND) pool = pool.concat(all.filter(q => q.level !== lvl));
+        if (pool.length < size) pool = pool.concat(all.filter(q => q.level !== lvl));
         const shuffled = shuffleArray(pool);
-        let selected = shuffled.slice(0, QUESTIONS_PER_ROUND);
+        let selected = shuffled.slice(0, size);
         // pad by reusing (shuffled again) if the category has fewer than required
-        while (selected.length < QUESTIONS_PER_ROUND) {
+        while (selected.length < size) {
             const extra = shuffleArray(pool);
-            selected = selected.concat(extra.slice(0, QUESTIONS_PER_ROUND - selected.length));
+            selected = selected.concat(extra.slice(0, size - selected.length));
         }
         // also shuffle each question's options while tracking the correct answer
         return selected.map(q => {
@@ -1410,7 +1530,7 @@
             btn.innerHTML = `
                 <div class="flex items-center space-x-2.5 text-left">
                     <span class="text-comic-pillBlue font-black">${prefixes[idx]}.</span>
-                    <span>${optText}</span>
+                    <span>${escapeHtml(optText)}</span>
                 </div>
                 <div id="optionStatusIcon_${idx}" class="w-5 h-5 rounded-full border-2 border-slate-300 flex items-center justify-center text-[10px] opacity-0"></div>
             `;
@@ -1639,9 +1759,9 @@
         hideAllScreens();
         userState.quizzesCompleted += 1;
 
-        const prevBest = userState.categoryBest[currentCategoryKey];
+        const prevBest = getBest(currentCategoryKey, currentDifficulty);
         const isNewBest = !prevBest || activeQuizScore > prevBest.best;
-        userState.categoryBest[currentCategoryKey] = {
+        userState.categoryBest[bestKey(currentCategoryKey, currentDifficulty)] = {
             best: isNewBest ? activeQuizScore : prevBest.best,
             total: currentQuizQuestions.length,
             attempts: (prevBest ? prevBest.attempts : 0) + 1
@@ -1652,7 +1772,7 @@
         document.getElementById('resultsXpEarned').innerText = `+${activeQuizXpEarned}`;
         document.getElementById('resultsCoinsEarned').innerText = `+${activeQuizCoinsEarned}`;
         document.getElementById('resultsBestCombo').innerText = `x${bestComboThisRound}`;
-        document.getElementById('resultsBestScoreNote').innerText = isNewBest ? '🎉 New Best!' : `${userState.categoryBest[currentCategoryKey].best}/${QUESTIONS_PER_ROUND}`;
+        document.getElementById('resultsBestScoreNote').innerText = isNewBest ? '🎉 New Best!' : `${getBest(currentCategoryKey, currentDifficulty).best}/${currentQuizQuestions.length}`;
 
         const scorePercent = (activeQuizScore / currentQuizQuestions.length);
         const titleEl = document.getElementById('resultsTitle');
@@ -1698,16 +1818,16 @@
             card.className = `p-3 rounded-xl border-2 ${wasCorrect ? 'border-comic-greenBorder bg-comic-greenLight' : 'border-comic-redBorder bg-comic-redLight'}`;
 
             let statusLabel = wasCorrect ? '✓ Correct' : (entry.wasSkipped ? '⏭ Skipped' : (entry.wasTimeout ? '⏱ Time Up' : '✕ Wrong'));
-            let chosenLine = (entry.chosen >= 0) ? `Your answer: ${prefixes[entry.chosen]}. ${entry.options[entry.chosen]}` : `Your answer: —`;
+            let chosenLine = (entry.chosen >= 0) ? `Your answer: ${prefixes[entry.chosen]}. ${escapeHtml(entry.options[entry.chosen])}` : `Your answer: —`;
 
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-1">
                     <span class="font-black text-[10px] text-slate-500 uppercase">Q${i + 1}</span>
                     <span class="font-black text-[10px] uppercase ${wasCorrect ? 'text-comic-greenBorder' : 'text-comic-redBorder'}">${statusLabel}</span>
                 </div>
-                <p class="font-black text-xs text-slate-900 mb-1.5">${entry.question}</p>
+                <p class="font-black text-xs text-slate-900 mb-1.5">${escapeHtml(entry.question)}</p>
                 <p class="text-[11px] font-bold text-slate-700">${chosenLine}</p>
-                ${!wasCorrect ? `<p class="text-[11px] font-bold text-emerald-700">Correct: ${prefixes[entry.correct]}. ${entry.options[entry.correct]}</p>` : ''}
+                ${!wasCorrect ? `<p class="text-[11px] font-bold text-emerald-700">Correct: ${prefixes[entry.correct]}. ${escapeHtml(entry.options[entry.correct])}</p>` : ''}
             `;
             container.appendChild(card);
         });
@@ -1820,4 +1940,4 @@
 </script>
 
 </body>
-    </html>
+                        </html>
